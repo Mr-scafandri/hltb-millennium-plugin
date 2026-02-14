@@ -19,7 +19,7 @@
       "Bash(curl:*)",
       "Bash(wget:*)",
 
-      "Bash(git commit --no-verify:*)",
+      "Bash(git commit --no-verify:*)"
     ],
     "allow": [
       "Bash(git:*)",
