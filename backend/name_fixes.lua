@@ -254,5 +254,6 @@ return {
     [3319980] = "The Legend of Heroes: Trails beyond the Horizon",
     [3407390] = "ENDLESS Legend II",
     [3447040] = "Trails in the Sky 1st Chapter",
+    [3868310] = "My Wife Threw Out My Card Collection (So I Bought a Dump to Find Them All)",
     [3977900] = "Reflections of Life: Dark Architect",
 }
