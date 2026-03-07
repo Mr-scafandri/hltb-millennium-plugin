@@ -1,6 +1,8 @@
 import { callable } from '@steambrew/client';
 import { log, logError } from './logger';
 
+export type StorePosition = 'top' | 'achievements' | 'details' | 'bottom';
+
 export interface PluginSettings {
   showInLibrary: boolean;
   showInStore: boolean;
@@ -9,6 +11,8 @@ export interface PluginSettings {
   alignBottom: boolean;
   horizontalOffset: number;
   verticalOffset: number;
+  storePosition: StorePosition;
+  showStoreViewDetails: boolean;
 }
 
 interface SettingsResponse {
@@ -25,6 +29,8 @@ const DEFAULT_SETTINGS: PluginSettings = {
   alignBottom: true,
   horizontalOffset: 0,
   verticalOffset: 0,
+  storePosition: 'achievements' as StorePosition,
+  showStoreViewDetails: true,
 };
 
 const GetSettingsRpc = callable<[], string>('GetSettings');
@@ -52,6 +58,7 @@ export function getSettings(): PluginSettings {
 }
 
 export async function saveSettings(settings: PluginSettings): Promise<void> {
+  const previous = cachedSettings;
   cachedSettings = settings;
 
   try {
@@ -61,8 +68,10 @@ export async function saveSettings(settings: PluginSettings): Promise<void> {
     const result = JSON.parse(resultJson);
     if (!result.success) {
       logError('Failed to save settings:', result.error);
+      cachedSettings = previous;
     }
   } catch (e) {
     logError('Failed to save settings:', e);
+    cachedSettings = previous;
   }
 }

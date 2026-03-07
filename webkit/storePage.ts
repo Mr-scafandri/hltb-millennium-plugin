@@ -1,13 +1,14 @@
 import { Millennium, callable } from '@steambrew/webkit';
-import { fetchHltbData } from './hltbApi';
+import { fetchHltbData, HltbGameResult } from './hltbApi';
 import { injectStyles } from './styles';
 
 const GetSettingsRpc = callable<[], string>('GetSettings');
 
 const CONTAINER_ID = 'hltb-store-data';
 
+// Also defined in frontend/display/components.ts (separate build target, can't share code)
 function formatTime(hours: number | null | undefined): string {
-  if (!hours || hours === 0) return '--';
+  if (hours == null || hours <= 0) return '--';
   if (hours < 1) {
     const mins = Math.round(hours * 60);
     return `${mins}m`;
@@ -25,16 +26,7 @@ function createLoadingDisplay(): HTMLElement {
   return container;
 }
 
-interface HltbGameResult {
-  searched_name: string;
-  game_id?: number;
-  game_name?: string;
-  comp_main?: number | null;
-  comp_plus?: number | null;
-  comp_100?: number | null;
-}
-
-function createDataDisplay(data: HltbGameResult): HTMLElement {
+function createDataDisplay(data: HltbGameResult, showViewDetails: boolean): HTMLElement {
   const container = document.createElement('div');
   container.id = CONTAINER_ID;
 
@@ -48,12 +40,14 @@ function createDataDisplay(data: HltbGameResult): HTMLElement {
     .map(s => `<div class="hltb-store-row">${s.label}<span>${formatTime(s.value)}</span></div>`)
     .join('');
 
-  let linkHtml: string;
-  if (data.game_id) {
-    linkHtml = `<a class="hltb-store-link" href="https://howlongtobeat.com/game/${data.game_id}" target="_blank">View on HowLongToBeat</a>`;
-  } else {
-    const query = encodeURIComponent(data.searched_name);
-    linkHtml = `<a class="hltb-store-link" href="https://howlongtobeat.com/?q=${query}" target="_blank">Search on HowLongToBeat</a>`;
+  let linkHtml = '';
+  if (showViewDetails) {
+    if (data.game_id) {
+      linkHtml = `<a class="hltb-store-link" href="https://howlongtobeat.com/game/${data.game_id}" target="_blank">View Details</a>`;
+    } else {
+      const query = encodeURIComponent(data.searched_name);
+      linkHtml = `<a class="hltb-store-link" href="https://howlongtobeat.com/?q=${query}" target="_blank">Search HLTB</a>`;
+    }
   }
 
   container.innerHTML = `
@@ -65,40 +59,82 @@ function createDataDisplay(data: HltbGameResult): HTMLElement {
   return container;
 }
 
+const SIDEBAR_SELECTOR = 'div.rightcol.game_meta_data';
+
+// Position targets in the store sidebar, ordered for fallback
+const POSITION_SELECTORS: Record<string, string> = {
+  top: SIDEBAR_SELECTOR,
+  achievements: '#achievement_block',
+  details: '#appDetailsUnderlinedLinks',
+  bottom: SIDEBAR_SELECTOR,
+};
+
+function insertAtPosition(element: HTMLElement, position: string): boolean {
+  if (position === 'top') {
+    const sidebar = document.querySelector(SIDEBAR_SELECTOR);
+    if (!sidebar) return false;
+    sidebar.insertBefore(element, sidebar.firstChild);
+    return true;
+  }
+
+  if (position === 'bottom') {
+    const sidebar = document.querySelector(SIDEBAR_SELECTOR);
+    if (!sidebar) return false;
+    sidebar.appendChild(element);
+    return true;
+  }
+
+  const selector = POSITION_SELECTORS[position];
+  if (!selector) return false;
+
+  const target = document.querySelector(selector);
+  if (!target?.parentElement) return false;
+
+  // Insert after the target element
+  target.parentElement.insertBefore(element, target.nextSibling);
+  return true;
+}
+
 export async function initStorePage(appId: number): Promise<void> {
-  // Check if store display is enabled
+  let storePosition = 'achievements';
+  let showViewDetails = true;
+
+  // Check settings
   try {
     const settingsJson = await GetSettingsRpc();
     if (settingsJson) {
       const result = JSON.parse(settingsJson);
-      if (result.success && result.data && !result.data.showInStore) {
-        return;
+      if (result.success && result.data) {
+        if (!result.data.showInStore) return;
+        if (result.data.storePosition) storePosition = result.data.storePosition;
+        if (result.data.showStoreViewDetails === false) showViewDetails = false;
       }
     }
   } catch {
-    // If settings fetch fails, proceed with display (default is enabled)
+    // If settings fetch fails, proceed with defaults
   }
 
   injectStyles();
 
-  // Wait for the game details sidebar to appear
-  let gameDetails: Element;
+  // Wait for the sidebar to appear
   try {
-    const elements = await Millennium.findElement(document, 'div.game_details', 5000);
-    gameDetails = elements[0];
+    await Millennium.findElement(document, SIDEBAR_SELECTOR, 5000);
   } catch {
-    console.warn('[HLTB] div.game_details not found, skipping store page injection');
+    console.warn('[HLTB] Store sidebar not found, skipping injection');
     return;
   }
-
-  if (!gameDetails) return;
 
   // Don't inject twice
   if (document.getElementById(CONTAINER_ID)) return;
 
-  // Insert loading state before game_details
+  // Insert loading state at chosen position, fall back to bottom of sidebar
   const loading = createLoadingDisplay();
-  gameDetails.parentElement?.insertBefore(loading, gameDetails);
+  if (!insertAtPosition(loading, storePosition)) {
+    if (!insertAtPosition(loading, 'bottom')) {
+      console.warn('[HLTB] Could not find insertion point, skipping injection');
+      return;
+    }
+  }
 
   // Get fallback game name from the page
   const nameEl = document.querySelector('.apphub_AppName');
@@ -112,7 +148,7 @@ export async function initStorePage(appId: number): Promise<void> {
   if (!existing) return;
 
   if (data) {
-    existing.replaceWith(createDataDisplay(data));
+    existing.replaceWith(createDataDisplay(data, showViewDetails));
   } else {
     existing.remove();
   }

@@ -14,6 +14,13 @@ import { getIdCacheStats, clearIdCache } from './services/hltbIdCache';
 let currentDocument: Document | undefined;
 let initializedForUserId: string | null = null;
 
+const STORE_POSITION_OPTIONS = [
+  { value: 'top', label: 'Sidebar start' },
+  { value: 'achievements', label: 'Achievements' },
+  { value: 'details', label: 'Game details' },
+  { value: 'bottom', label: 'Sidebar end' },
+];
+
 const SettingsContent = () => {
   const [message, setMessage] = useState('');
   const [showInLibrary, setShowInLibrary] = useState(true);
@@ -23,6 +30,8 @@ const SettingsContent = () => {
   const [showViewDetails, setShowViewDetails] = useState(true);
   const [alignRight, setAlignRight] = useState(true);
   const [alignBottom, setAlignBottom] = useState(true);
+  const [storePosition, setStorePosition] = useState('achievements');
+  const [showStoreViewDetails, setShowStoreViewDetails] = useState(true);
 
   useEffect(() => {
     const settings = getSettings();
@@ -33,6 +42,8 @@ const SettingsContent = () => {
     setShowViewDetails(settings.showViewDetails);
     setAlignRight(settings.alignRight);
     setAlignBottom(settings.alignBottom);
+    setStorePosition(settings.storePosition);
+    setShowStoreViewDetails(settings.showStoreViewDetails);
   }, []);
 
   const onShowInLibraryChange = (checked: boolean) => {
@@ -44,6 +55,17 @@ const SettingsContent = () => {
   const onShowInStoreChange = (checked: boolean) => {
     setShowInStore(checked);
     saveSettings({ ...getSettings(), showInStore: checked });
+  };
+
+  const onStorePositionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setStorePosition(value);
+    saveSettings({ ...getSettings(), storePosition: value as any });
+  };
+
+  const onShowStoreViewDetailsChange = (checked: boolean) => {
+    setShowStoreViewDetails(checked);
+    saveSettings({ ...getSettings(), showStoreViewDetails: checked });
   };
 
   const onHorizontalOffsetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -121,7 +143,9 @@ const SettingsContent = () => {
 
   return (
     <>
-      <Field label="Show in Library" description="Display HLTB data on game pages in your library" bottomSeparator="standard">
+      {/* Library View */}
+      <div style={{ fontSize: '16px', fontWeight: 'bold', padding: '16px 0 8px', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '0' }}>Library View</div>
+      <Field label="Show in Library" bottomSeparator="standard">
         <input
           type="checkbox"
           checked={showInLibrary}
@@ -145,7 +169,7 @@ const SettingsContent = () => {
           style={{ width: '60px', padding: '4px 8px' }}
         />
       </Field>
-      <Field label="Align to Right" description="Position on right side of header. Disable for left side." bottomSeparator="standard">
+      <Field label="Align to Right" description="Uncheck for left align" bottomSeparator="standard">
         <input
           type="checkbox"
           checked={alignRight}
@@ -153,7 +177,7 @@ const SettingsContent = () => {
           style={{ width: '20px', height: '20px' }}
         />
       </Field>
-      <Field label="Align to Bottom" description="Position at bottom of header. Disable for top." bottomSeparator="standard">
+      <Field label="Align to Bottom" description="Uncheck for top align" bottomSeparator="standard">
         <input
           type="checkbox"
           checked={alignBottom}
@@ -169,7 +193,10 @@ const SettingsContent = () => {
           style={{ width: '20px', height: '20px' }}
         />
       </Field>
-      <Field label="Show in Store" description="Display HLTB data in the store page sidebar (applies on next page load)" bottomSeparator="standard">
+
+      {/* Store View */}
+      <div style={{ fontSize: '16px', fontWeight: 'bold', padding: '28px 0 8px', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '0' }}>Store View</div>
+      <Field label="Show in Store" description="Store settings apply on next page load" bottomSeparator="standard">
         <input
           type="checkbox"
           checked={showInStore}
@@ -177,6 +204,28 @@ const SettingsContent = () => {
           style={{ width: '20px', height: '20px' }}
         />
       </Field>
+      <Field label="Position" bottomSeparator="standard">
+        <select
+          value={storePosition}
+          onChange={onStorePositionChange}
+          style={{ padding: '4px 8px' }}
+        >
+          {STORE_POSITION_OPTIONS.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      </Field>
+      <Field label="Show View Details Link" description="Display link to HLTB game page" bottomSeparator="standard">
+        <input
+          type="checkbox"
+          checked={showStoreViewDetails}
+          onChange={(e) => onShowStoreViewDetailsChange(e.target.checked)}
+          style={{ width: '20px', height: '20px' }}
+        />
+      </Field>
+
+      {/* Cache */}
+      <div style={{ fontSize: '16px', fontWeight: 'bold', padding: '28px 0 8px', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '0' }}>Cache</div>
       <Field label="Cache Statistics" bottomSeparator="standard">
         <DialogButton onClick={onCacheStats} style={{ padding: '8px 16px' }}>View Stats</DialogButton>
       </Field>
@@ -191,7 +240,7 @@ const SettingsContent = () => {
 export default definePlugin(() => {
   log('HLTB plugin loading...');
 
-  // Load settings from backend before anything else
+  // Start loading settings from backend in background (non-blocking)
   initSettings();
 
   Millennium.AddWindowCreateHook?.((context: any) => {

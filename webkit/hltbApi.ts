@@ -1,6 +1,6 @@
 import { callable } from '@steambrew/webkit';
 
-interface HltbGameResult {
+export interface HltbGameResult {
   searched_name: string;
   game_id?: number;
   game_name?: string;

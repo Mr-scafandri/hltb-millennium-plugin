@@ -12,6 +12,8 @@ M.DEFAULTS = {
     alignBottom = true,
     horizontalOffset = 0,
     verticalOffset = 0,
+    storePosition = "achievements",
+    showStoreViewDetails = true,
 }
 
 local function get_settings_path()

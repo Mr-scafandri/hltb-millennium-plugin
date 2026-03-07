@@ -30,7 +30,7 @@ local function create_mock_file(content)
     return {
         _content = content,
         _written = nil,
-        read = function(self)
+        read = function(self, _mode)
             return self._content
         end,
         write = function(self, data)
@@ -64,6 +64,8 @@ describe("settings", function()
             assert.equals(true, result.alignBottom)
             assert.equals(0, result.horizontalOffset)
             assert.equals(0, result.verticalOffset)
+            assert.equals("achievements", result.storePosition)
+            assert.equals(true, result.showStoreViewDetails)
         end)
 
         it("preserves provided values", function()
@@ -85,6 +87,11 @@ describe("settings", function()
         it("ignores unknown keys", function()
             local result = settings.merge_defaults({ unknownKey = "hello" })
             assert.is_nil(result.unknownKey)
+        end)
+
+        it("preserves string setting values", function()
+            local result = settings.merge_defaults({ storePosition = "top" })
+            assert.equals("top", result.storePosition)
         end)
 
         it("preserves false boolean values", function()

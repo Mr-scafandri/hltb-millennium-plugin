@@ -72,9 +72,31 @@ Four projects that inject content into Steam store app pages were examined:
 - Injection target: after `.game_description_snippet`
 - Game name source: `.apphub_AppName`
 
-### Recommended injection point
+### Sidebar structure and injection points
 
-`div.game_details` is the most commonly used target across projects. It's the right-column sidebar on store pages. Rationale:
+The store page right sidebar (`div.rightcol.game_meta_data`) contains these elements in order:
+
+| Element | Selector | Notes |
+|---------|----------|-------|
+| Features/categories | `#category_block` | Game features like multiplayer, controller support |
+| Deck compatibility | `[data-featuretarget="deck-verified-results"]` | Not present on all pages |
+| Achievements | `#achievement_block` | Not present for games without achievements |
+| Game details + links | `#appDetailsUnderlinedLinks` | Title, genre, developer, publisher, release date, external links |
+
+The plugin supports four configurable insertion positions:
+
+| Position | Behavior | Fallback |
+|----------|----------|----------|
+| `top` | First child of sidebar | N/A (sidebar always exists) |
+| `achievements` (default) | After `#achievement_block` | Bottom of sidebar |
+| `details` | After `#appDetailsUnderlinedLinks` | Bottom of sidebar |
+| `bottom` | Last child of sidebar | N/A |
+
+If the chosen target element doesn't exist on a page (e.g., no achievements), the plugin falls back to bottom of sidebar.
+
+### Historical injection point research
+
+`div.game_details` is the most commonly used target across reference projects. Rationale:
 
 - Stable, semantic selector (less likely to break than obfuscated class names)
 - Natural location for game metadata (near developer, publisher, release date)
@@ -189,9 +211,12 @@ Reference: https://github.com/BlythT/Gratitude-Millennium-Plugin
   "alignRight": true,
   "alignBottom": true,
   "horizontalOffset": 0,
-  "verticalOffset": 0
+  "verticalOffset": 0,
+  "storePosition": "achievements"
 }
 ```
+
+Valid values for `storePosition`: `"top"`, `"achievements"`, `"details"`, `"bottom"`.
 
 All settings move from frontend localStorage to the backend JSON file. The file is stored alongside the plugin (e.g., `settings.json` in the plugin root).
 
