@@ -1,6 +1,8 @@
-import { Millennium } from '@steambrew/webkit';
+import { Millennium, callable } from '@steambrew/webkit';
 import { fetchHltbData } from './hltbApi';
 import { injectStyles } from './styles';
+
+const GetSettingsRpc = callable<[], string>('GetSettings');
 
 const CONTAINER_ID = 'hltb-store-data';
 
@@ -64,6 +66,19 @@ function createDataDisplay(data: HltbGameResult): HTMLElement {
 }
 
 export async function initStorePage(appId: number): Promise<void> {
+  // Check if store display is enabled
+  try {
+    const settingsJson = await GetSettingsRpc();
+    if (settingsJson) {
+      const result = JSON.parse(settingsJson);
+      if (result.success && result.data && !result.data.showInStore) {
+        return;
+      }
+    }
+  } catch {
+    // If settings fetch fails, proceed with display (default is enabled)
+  }
+
   injectStyles();
 
   // Wait for the game details sidebar to appear

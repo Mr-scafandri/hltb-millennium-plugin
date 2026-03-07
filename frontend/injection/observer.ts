@@ -26,7 +26,18 @@ export function refreshDisplay(): void {
   if (!currentDoc || !currentAppId) return;
 
   const existing = getExistingDisplay(currentDoc);
-  if (!existing) return;
+
+  // If display doesn't exist but should, re-trigger detection
+  if (!existing) {
+    const doc = currentDoc;
+    currentAppId = null;
+    processingAppId = null;
+    // Trigger MutationObserver to re-detect and re-inject
+    const marker = doc.createComment('hltb-refresh');
+    doc.body.appendChild(marker);
+    marker.remove();
+    return;
+  }
 
   const cached = getCache(currentAppId);
   const data = cached?.entry?.data;
@@ -37,6 +48,12 @@ export function refreshDisplay(): void {
 }
 
 async function handleGamePage(doc: Document, selectors: LibrarySelectors): Promise<void> {
+  const settings = getSettings();
+  if (!settings.showInLibrary) {
+    removeExistingDisplay(doc);
+    return;
+  }
+
   const gamePage = await detectGamePage(doc, selectors);
   if (!gamePage) {
     // Silent return - game page not detected (common during DOM transitions)
@@ -62,8 +79,6 @@ async function handleGamePage(doc: Document, selectors: LibrarySelectors): Promi
   currentAppId = appId;
   currentDoc = doc;
   log('Found game page for appId:', appId);
-
-  const settings = getSettings();
 
   try {
     removeExistingDisplay(doc);

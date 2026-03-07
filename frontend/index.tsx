@@ -7,7 +7,7 @@ import { exposeDebugTools, removeDebugTools } from './debug/tools';
 import { removeStyles } from './display/styles';
 import { removeExistingDisplay } from './display/components';
 import { clearCache, getCacheStats } from './services/cache';
-import { getSettings, saveSettings } from './services/settings';
+import { getSettings, saveSettings, initSettings } from './services/settings';
 import { initializeIdCache } from './services/hltbApi';
 import { getIdCacheStats, clearIdCache } from './services/hltbIdCache';
 
@@ -16,6 +16,8 @@ let initializedForUserId: string | null = null;
 
 const SettingsContent = () => {
   const [message, setMessage] = useState('');
+  const [showInLibrary, setShowInLibrary] = useState(true);
+  const [showInStore, setShowInStore] = useState(true);
   const [horizontalOffset, setHorizontalOffset] = useState('0');
   const [verticalOffset, setVerticalOffset] = useState('0');
   const [showViewDetails, setShowViewDetails] = useState(true);
@@ -24,12 +26,25 @@ const SettingsContent = () => {
 
   useEffect(() => {
     const settings = getSettings();
+    setShowInLibrary(settings.showInLibrary);
+    setShowInStore(settings.showInStore);
     setHorizontalOffset(String(settings.horizontalOffset));
     setVerticalOffset(String(settings.verticalOffset));
     setShowViewDetails(settings.showViewDetails);
     setAlignRight(settings.alignRight);
     setAlignBottom(settings.alignBottom);
   }, []);
+
+  const onShowInLibraryChange = (checked: boolean) => {
+    setShowInLibrary(checked);
+    saveSettings({ ...getSettings(), showInLibrary: checked });
+    refreshDisplay();
+  };
+
+  const onShowInStoreChange = (checked: boolean) => {
+    setShowInStore(checked);
+    saveSettings({ ...getSettings(), showInStore: checked });
+  };
 
   const onHorizontalOffsetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -106,6 +121,14 @@ const SettingsContent = () => {
 
   return (
     <>
+      <Field label="Show in Library" description="Display HLTB data on game pages in your library" bottomSeparator="standard">
+        <input
+          type="checkbox"
+          checked={showInLibrary}
+          onChange={(e) => onShowInLibraryChange(e.target.checked)}
+          style={{ width: '20px', height: '20px' }}
+        />
+      </Field>
       <Field label="Horizontal Offset (px)" description="Distance from aligned edge. Negative values shift in the opposite direction." bottomSeparator="standard">
         <input
           type="number"
@@ -146,6 +169,14 @@ const SettingsContent = () => {
           style={{ width: '20px', height: '20px' }}
         />
       </Field>
+      <Field label="Show in Store" description="Display HLTB data on Steam store pages (applies on next page load)" bottomSeparator="standard">
+        <input
+          type="checkbox"
+          checked={showInStore}
+          onChange={(e) => onShowInStoreChange(e.target.checked)}
+          style={{ width: '20px', height: '20px' }}
+        />
+      </Field>
       <Field label="Cache Statistics" bottomSeparator="standard">
         <DialogButton onClick={onCacheStats} style={{ padding: '8px 16px' }}>View Stats</DialogButton>
       </Field>
@@ -159,6 +190,9 @@ const SettingsContent = () => {
 
 export default definePlugin(() => {
   log('HLTB plugin loading...');
+
+  // Load settings from backend before anything else
+  initSettings();
 
   Millennium.AddWindowCreateHook?.((context: any) => {
     // Only handle main Steam windows (Desktop or Big Picture)
