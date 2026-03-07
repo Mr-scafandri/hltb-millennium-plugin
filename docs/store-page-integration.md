@@ -212,11 +212,14 @@ Reference: https://github.com/BlythT/Gratitude-Millennium-Plugin
   "alignBottom": true,
   "horizontalOffset": 0,
   "verticalOffset": 0,
-  "storePosition": "achievements"
+  "storePosition": "achievements",
+  "showStoreViewDetails": true
 }
 ```
 
 Valid values for `storePosition`: `"top"`, `"achievements"`, `"details"`, `"bottom"`.
+
+`showViewDetails` controls the library link, `showStoreViewDetails` controls the store link. They are independent.
 
 All settings move from frontend localStorage to the backend JSON file. The file is stored alongside the plugin (e.g., `settings.json` in the plugin root).
 
