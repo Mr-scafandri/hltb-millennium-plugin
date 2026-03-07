@@ -169,7 +169,7 @@ const SettingsContent = () => {
           style={{ width: '20px', height: '20px' }}
         />
       </Field>
-      <Field label="Show in Store" description="Display HLTB data on Steam store pages (applies on next page load)" bottomSeparator="standard">
+      <Field label="Show in Store" description="Display HLTB data in the store page sidebar (applies on next page load)" bottomSeparator="standard">
         <input
           type="checkbox"
           checked={showInStore}
