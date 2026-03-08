@@ -110,29 +110,27 @@ const SettingsContent = () => {
     const stats = getCacheStats();
     const idStats = getIdCacheStats();
 
-    const parts: string[] = [];
+    const lines: string[] = [];
 
-    // Result cache stats
     if (stats.count === 0) {
-      parts.push('Result cache: empty');
+      lines.push('0 games cached');
     } else {
       const age = stats.oldestTimestamp
         ? Math.round((Date.now() - stats.oldestTimestamp) / (1000 * 60 * 60 * 24))
         : 0;
-      parts.push(`Result cache: ${stats.count} games, oldest ${age}d`);
+      lines.push(`${stats.count} games cached, oldest ${age}d`);
     }
 
-    // ID cache stats
     if (idStats.count === 0) {
-      parts.push('ID cache: empty');
+      lines.push('0 ID mappings');
     } else {
       const age = idStats.ageMs
         ? Math.round(idStats.ageMs / (1000 * 60 * 60 * 24))
         : 0;
-      parts.push(`ID cache: ${idStats.count} mappings, ${age}d old`);
+      lines.push(`${idStats.count} ID mappings, ${age}d old`);
     }
 
-    setMessage(parts.join(' | '));
+    setMessage(lines.join('\n'));
   };
 
   const onClearCache = () => {
@@ -144,7 +142,8 @@ const SettingsContent = () => {
   return (
     <>
       {/* Library View */}
-      <div style={{ fontSize: '16px', fontWeight: 'bold', padding: '16px 0 8px', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '0' }}>Library View</div>
+      <div style={{ fontSize: '16px', fontWeight: 'bold', padding: '0 0 0', textTransform: 'uppercase', letterSpacing: '1px' }}>Library View</div>
+      <div style={{ fontSize: '11px', color: '#8f98a0', padding: '4px 0 8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Changes apply immediately</div>
       <Field label="Show in Library" bottomSeparator="standard">
         <input
           type="checkbox"
@@ -153,7 +152,7 @@ const SettingsContent = () => {
           style={{ width: '20px', height: '20px' }}
         />
       </Field>
-      <Field label="Horizontal Offset (px)" description="Distance from aligned edge. Negative values shift in the opposite direction." bottomSeparator="standard">
+      <Field label="Horizontal Offset (px)" description="Distance from edge, negative values OK" bottomSeparator="standard">
         <input
           type="number"
           value={horizontalOffset}
@@ -161,7 +160,7 @@ const SettingsContent = () => {
           style={{ width: '60px', padding: '4px 8px' }}
         />
       </Field>
-      <Field label="Vertical Offset (px)" description="Distance from aligned edge. Negative values shift in the opposite direction." bottomSeparator="standard">
+      <Field label="Vertical Offset (px)" description="Distance from edge, negative values OK" bottomSeparator="standard">
         <input
           type="number"
           value={verticalOffset}
@@ -169,7 +168,7 @@ const SettingsContent = () => {
           style={{ width: '60px', padding: '4px 8px' }}
         />
       </Field>
-      <Field label="Align to Right" description="Uncheck for left align" bottomSeparator="standard">
+      <Field label="Align to Right" bottomSeparator="standard">
         <input
           type="checkbox"
           checked={alignRight}
@@ -177,7 +176,7 @@ const SettingsContent = () => {
           style={{ width: '20px', height: '20px' }}
         />
       </Field>
-      <Field label="Align to Bottom" description="Uncheck for top align" bottomSeparator="standard">
+      <Field label="Align to Bottom" bottomSeparator="standard">
         <input
           type="checkbox"
           checked={alignBottom}
@@ -185,7 +184,7 @@ const SettingsContent = () => {
           style={{ width: '20px', height: '20px' }}
         />
       </Field>
-      <Field label="Show View Details Link" description="Display link to HLTB game page" bottomSeparator="standard">
+      <Field label="Show View Details Link" bottomSeparator="standard">
         <input
           type="checkbox"
           checked={showViewDetails}
@@ -195,8 +194,9 @@ const SettingsContent = () => {
       </Field>
 
       {/* Store View */}
-      <div style={{ fontSize: '16px', fontWeight: 'bold', padding: '28px 0 8px', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '0' }}>Store View</div>
-      <Field label="Show in Store" description="Store settings apply on next page load" bottomSeparator="standard">
+      <div style={{ fontSize: '16px', fontWeight: 'bold', padding: '28px 0 0', textTransform: 'uppercase', letterSpacing: '1px' }}>Store View</div>
+      <div style={{ fontSize: '11px', color: '#8f98a0', padding: '4px 0 8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Changes apply on next page load</div>
+      <Field label="Show in Store" bottomSeparator="standard">
         <input
           type="checkbox"
           checked={showInStore}
@@ -215,7 +215,7 @@ const SettingsContent = () => {
           ))}
         </select>
       </Field>
-      <Field label="Show View Details Link" description="Display link to HLTB game page" bottomSeparator="standard">
+      <Field label="Show View Details Link" bottomSeparator="standard">
         <input
           type="checkbox"
           checked={showStoreViewDetails}
@@ -227,12 +227,14 @@ const SettingsContent = () => {
       {/* Cache */}
       <div style={{ fontSize: '16px', fontWeight: 'bold', padding: '28px 0 8px', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '0' }}>Cache</div>
       <Field label="Cache Statistics" bottomSeparator="standard">
-        <DialogButton onClick={onCacheStats} style={{ padding: '8px 16px' }}>View Stats</DialogButton>
+        <DialogButton onClick={onCacheStats} style={{ padding: '4px 12px' }}>View Stats</DialogButton>
       </Field>
       <Field label="Clear Cache" bottomSeparator="standard">
-        <DialogButton onClick={onClearCache} style={{ padding: '8px 16px' }}>Clear</DialogButton>
+        <DialogButton onClick={onClearCache} style={{ padding: '4px 12px' }}>Clear</DialogButton>
       </Field>
-      {message && <Field description={message} />}
+      {message && <div style={{ fontSize: '12px', color: '#8f98a0', padding: '8px 0' }}>{message.split('\n').map((line, i) => (
+        <div key={i}>{line}</div>
+      ))}</div>}
     </>
   );
 };
