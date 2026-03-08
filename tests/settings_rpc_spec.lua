@@ -42,6 +42,21 @@ local mock_settings = {
 }
 package.loaded["settings"] = mock_settings
 
+-- Mock cache module
+package.loaded["cache"] = {
+    load = function() end,
+    get = function() return nil end,
+    set = function() end,
+    clear = function() end,
+    clear_id_cache = function() end,
+    stats = function() return { count = 0, oldestTimestamp = nil } end,
+    id_cache_stats = function() return { count = 0, steamUserId = nil, ageSeconds = nil } end,
+    get_hltb_id = function() return nil end,
+    set_id_mappings = function() end,
+    is_id_cache_valid = function() return false end,
+    get_all = function() return {} end,
+}
+
 -- Load main module (this defines GetSettings/SaveSettings as globals)
 package.loaded["main"] = nil
 local main = require("main")

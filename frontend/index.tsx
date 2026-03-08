@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
-import { definePlugin, Millennium, IconsModule, Field, DialogButton } from '@steambrew/client';
+import { definePlugin, Millennium, IconsModule, Field, DialogButton, callable } from '@steambrew/client';
 import { log } from './services/logger';
 import { LIBRARY_SELECTORS } from './types';
 import { setupObserver, resetState, disconnectObserver, refreshDisplay } from './injection/observer';
 import { exposeDebugTools, removeDebugTools } from './debug/tools';
 import { removeStyles } from './display/styles';
 import { removeExistingDisplay } from './display/components';
-import { clearCache, getCacheStats } from './services/cache';
+import { clearCache } from './services/cache';
+import { initCache } from './services/cache';
 import { getSettings, saveSettings, initSettings } from './services/settings';
 import { initializeIdCache } from './services/hltbApi';
-import { getIdCacheStats, clearIdCache } from './services/hltbIdCache';
+
+const GetCacheStats = callable<[], string>('GetCacheStats');
+const ClearCacheRpc = callable<[], string>('ClearCache');
 
 let currentDocument: Document | undefined;
 let initializedForUserId: string | null = null;
@@ -106,37 +109,50 @@ const SettingsContent = () => {
     refreshDisplay();
   };
 
-  const onCacheStats = () => {
-    const stats = getCacheStats();
-    const idStats = getIdCacheStats();
+  const onCacheStats = async () => {
+    try {
+      const resultJson = await GetCacheStats();
+      const result = JSON.parse(resultJson);
+      if (!result.success) {
+        setMessage('Failed to get cache stats');
+        return;
+      }
 
-    const lines: string[] = [];
+      const { resultCache, idCache } = result.data;
+      const lines: string[] = [];
 
-    if (stats.count === 0) {
-      lines.push('0 games cached');
-    } else {
-      const age = stats.oldestTimestamp
-        ? Math.round((Date.now() - stats.oldestTimestamp) / (1000 * 60 * 60 * 24))
-        : 0;
-      lines.push(`${stats.count} games cached, oldest ${age}d`);
+      if (resultCache.count === 0) {
+        lines.push('0 games cached');
+      } else {
+        const age = resultCache.oldestTimestamp
+          ? Math.round((Date.now() / 1000 - resultCache.oldestTimestamp) / (60 * 60 * 24))
+          : 0;
+        lines.push(`${resultCache.count} games cached, oldest ${age}d`);
+      }
+
+      if (idCache.count === 0) {
+        lines.push('0 ID mappings');
+      } else {
+        const age = idCache.ageSeconds
+          ? Math.round(idCache.ageSeconds / (60 * 60 * 24))
+          : 0;
+        lines.push(`${idCache.count} ID mappings, ${age}d old`);
+      }
+
+      setMessage(lines.join('\n'));
+    } catch {
+      setMessage('Failed to get cache stats');
     }
-
-    if (idStats.count === 0) {
-      lines.push('0 ID mappings');
-    } else {
-      const age = idStats.ageMs
-        ? Math.round(idStats.ageMs / (1000 * 60 * 60 * 24))
-        : 0;
-      lines.push(`${idStats.count} ID mappings, ${age}d old`);
-    }
-
-    setMessage(lines.join('\n'));
   };
 
-  const onClearCache = () => {
-    clearCache();
-    clearIdCache();
-    setMessage('All caches cleared');
+  const onClearCache = async () => {
+    try {
+      await ClearCacheRpc();
+      clearCache();
+      setMessage('All caches cleared');
+    } catch {
+      setMessage('Failed to clear cache');
+    }
   };
 
   return (
@@ -242,8 +258,9 @@ const SettingsContent = () => {
 export default definePlugin(() => {
   log('HLTB plugin loading...');
 
-  // Start loading settings from backend in background (non-blocking)
+  // Start loading settings and cache from backend in background (non-blocking)
   initSettings();
+  initCache();
 
   Millennium.AddWindowCreateHook?.((context: any) => {
     // Only handle main Steam windows (Desktop or Big Picture)
@@ -269,7 +286,6 @@ export default definePlugin(() => {
     exposeDebugTools(doc);
 
     // Initialize ID cache in background (non-blocking)
-    // Uses HLTB's Steam import API to get steam_id -> hltb_id mappings
     // Skip if already successfully initialized for this user ID
     const steamUserId = (window as any).App?.m_CurrentUser?.strSteamID;
     if (steamUserId && steamUserId !== initializedForUserId) {

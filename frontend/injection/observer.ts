@@ -39,12 +39,11 @@ export function refreshDisplay(): void {
     return;
   }
 
-  const cached = getCache(currentAppId);
-  const data = cached?.entry?.data;
-  if (!data) return;
+  const entry = getCache(currentAppId);
+  if (!entry?.data) return;
 
   const settings = getSettings();
-  existing.replaceWith(createDisplay(currentDoc, settings, data));
+  existing.replaceWith(createDisplay(currentDoc, settings, entry.data));
 }
 
 async function handleGamePage(doc: Document, selectors: LibrarySelectors): Promise<void> {
@@ -94,12 +93,11 @@ async function handleGamePage(doc: Document, selectors: LibrarySelectors): Promi
       const existing = getExistingDisplay(doc);
       if (!existing) return false;
 
-      const cached = getCache(targetAppId);
-      const data = cached?.entry?.data;
+      const entry = getCache(targetAppId);
 
-      if (data) {
-        log('Updating display:', data.game_name || data.searched_name);
-        existing.replaceWith(createDisplay(doc, settings, data));
+      if (entry?.data) {
+        log('Updating display:', entry.data.game_name || entry.data.searched_name);
+        existing.replaceWith(createDisplay(doc, settings, entry.data));
         return true;
       }
       return false;

@@ -73,7 +73,7 @@ export function exposeDebugTools(doc: Document): void {
       const stats = getCacheStats();
       log('Cache entries:', stats.count);
       if (stats.oldestTimestamp) {
-        const age = Math.round((Date.now() - stats.oldestTimestamp) / (1000 * 60 * 60 * 24));
+        const age = Math.round((Date.now() / 1000 - stats.oldestTimestamp) / (60 * 60 * 24));
         log('Oldest entry:', age, 'days old');
       }
       return stats;
