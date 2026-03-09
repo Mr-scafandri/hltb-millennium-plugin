@@ -121,7 +121,7 @@ However, the game content area (where `div.game_details` lives) has not been mig
 
 Reference: `webkit/header.ts` from the AugmentedSteam Millennium plugin shows React detection and creates different fake headers per page type.
 
-## Implementation Plan
+## Implementation
 
 ### File structure
 
@@ -134,51 +134,11 @@ webkit/
   tsconfig.json      -- TypeScript config
 ```
 
-### Step 1: webkit/tsconfig.json
+The webkit module calls the same `GetHltbData` backend RPC as the library plugin. The backend handles all caching (result cache + ID cache) and search logic internally. The webkit module has no client-side cache — it's a thin RPC caller.
 
-Standard TypeScript config. Must be separate from `frontend/tsconfig.json` because it targets different module types.
+Stale-while-revalidate works identically to the library: if the backend returns stale data, a background `force_refresh` call updates the cache for next time.
 
-### Step 2: webkit/index.tsx (entry point)
-
-Default export function called by Millennium on every web page load.
-
-Logic:
-1. Check `window.location.href` against `/store\.steampowered\.com\/app\/(\d+)/`
-2. If no match, return immediately (bail out fast on non-app pages)
-3. Extract app ID from the URL
-4. Call `storePage.ts` to inject HLTB data
-
-### Step 3: webkit/hltbApi.ts (backend communication)
-
-Use `callable` from `@steambrew/webkit` to call the existing Lua backend functions. No backend changes needed.
-
-```typescript
-import { callable } from '@steambrew/webkit';
-
-const GetHltbData = callable<[{ app_id: number }], string>('GetHltbData');
-```
-
-Simpler than the frontend version:
-- No ID cache (store pages don't have access to the Steam user ID for HLTB import)
-- No stale-while-revalidate (store pages are one-shot views)
-- Simple localStorage cache to avoid re-fetching on revisit
-
-### Step 4: webkit/styles.ts (store page CSS)
-
-New styles that fit the Steam store page aesthetic. Unlike the library overlay (absolute-positioned on the header image), the store version should be an inline block that fits into the page flow near `div.game_details`.
-
-### Step 5: webkit/storePage.ts (DOM injection)
-
-1. Wait for `div.game_details` to exist (use `Millennium.findElement` or polling)
-2. Create HLTB display element
-3. Insert into/near `div.game_details`
-4. Fetch data from backend and update display
-
-Game name can be read from `.apphub_AppName` as a fallback, but the primary approach is passing the app ID to the backend (which looks up the name via Steam API).
-
-### Backend changes
-
-None required. The existing `GetHltbData` Lua function accepts `app_id` and optionally `fallback_name`, and returns HLTB completion times. The webkit module calls it the same way the frontend does.
+Works in both Desktop and Big Picture store views (same `store.steampowered.com` DOM structure).
 
 ## Shared Settings via Lua Backend
 
