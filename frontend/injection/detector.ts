@@ -32,9 +32,17 @@ function tryExtractGamePage(
 export async function detectGamePage(doc: Document, selectors: LibrarySelectors): Promise<GamePageInfo | null> {
   let result: GamePageInfo | null = null;
 
-  // Strategy 1: Check Millennium's Location (URL path)
-  // This is reliable and works even with custom art
-  if (window.MainWindowBrowserManager?.m_lastLocation?.pathname) {
+  // Strategy 1: Extract appId from header image URL (/assets/{appId}/...)
+  // Most reliable for Big Picture mode where pathname is stale and GetActiveAppID errors.
+  // Fragile: breaks with custom logos, so other strategies serve as fallbacks.
+  result =
+    tryExtractGamePage(doc, selectors.headerImageSelector, selectors.containerSelector, selectors.appIdPattern) ||
+    tryExtractGamePage(doc, selectors.fallbackImageSelector, selectors.containerSelector, selectors.appIdPattern);
+
+  // Strategy 2: Check Millennium's Location (URL path)
+  // Reliable in desktop mode and works even with custom art.
+  // Stale in Big Picture mode — pathname does not update when navigating between games.
+  if (!result && window.MainWindowBrowserManager?.m_lastLocation?.pathname) {
     const match = window.MainWindowBrowserManager.m_lastLocation.pathname.match(/\/app\/(\d+)/);
     if (match) {
       const appId = parseInt(match[1], 10);
@@ -45,8 +53,8 @@ export async function detectGamePage(doc: Document, selectors: LibrarySelectors)
     }
   }
 
-  // Strategy 2: Check Steam Client API
-  // Direct internal API call, very reliable if available
+  // Strategy 3: Check Steam Client API
+  // Errors in Big Picture mode. Only useful as a last resort.
   if (!result && window.SteamClient?.Apps?.GetActiveAppID) {
     try {
       // @ts-ignore - GetActiveAppID might return -1 or 0 if invalid
@@ -60,15 +68,6 @@ export async function detectGamePage(doc: Document, selectors: LibrarySelectors)
     } catch (e) {
       console.warn('SteamClient.Apps.GetActiveAppID failed:', e);
     }
-  }
-
-  // Strategy 3 (Fallback): Extract appId from header image URL (/assets/{appId}/...)
-  // Required for Big Picture mode where pathname is stale and GetActiveAppID errors.
-  // Fragile: breaks with custom logos
-  if (!result) {
-    result =
-      tryExtractGamePage(doc, selectors.headerImageSelector, selectors.containerSelector, selectors.appIdPattern) ||
-      tryExtractGamePage(doc, selectors.fallbackImageSelector, selectors.containerSelector, selectors.appIdPattern);
   }
 
   // Enrich with game name from Steam's app store for non-Steam game fallback
