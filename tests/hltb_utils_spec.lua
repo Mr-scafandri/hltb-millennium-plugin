@@ -22,6 +22,11 @@ describe("sanitize_game_name", function()
         assert.equals("Game Name", utils.sanitize_game_name("Game Name©"))
     end)
 
+    it("normalizes curly apostrophes to straight", function()
+        assert.equals("Tom Clancy's The Division 2", utils.sanitize_game_name("Tom Clancy\xe2\x80\x99s The Division 2"))
+        assert.equals("Tom Clancy's The Division", utils.sanitize_game_name("Tom Clancy\xe2\x80\x98s The Division"))
+    end)
+
     it("normalizes whitespace", function()
         assert.equals("Game Name", utils.sanitize_game_name("Game  Name"))
     end)
