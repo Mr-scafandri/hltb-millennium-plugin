@@ -30,6 +30,9 @@ export const LIBRARY_SELECTORS: LibrarySelectors = {
   appIdPattern: /\/assets\/(\d+)/,
 };
 
+// UI mode determines which detection strategies to use
+export type UIMode = 'desktop' | 'bigpicture';
+
 // Detected game page info
 export interface GamePageInfo {
   appId: number;

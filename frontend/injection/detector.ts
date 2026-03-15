@@ -1,4 +1,19 @@
-import type { LibrarySelectors, GamePageInfo } from '../types';
+import type { LibrarySelectors, GamePageInfo, UIMode } from '../types';
+import { log } from '../services/logger';
+
+// Stored by the Big Picture route patch when it fires
+let routePatchAppId: number | null = null;
+let routePatchGameName: string | undefined = undefined;
+
+export function setRoutePatchData(appId: number, gameName?: string): void {
+  routePatchAppId = appId;
+  routePatchGameName = gameName;
+}
+
+export function clearRoutePatchData(): void {
+  routePatchAppId = null;
+  routePatchGameName = undefined;
+}
 
 function extractGameName(appId: number): string | undefined {
   try {
@@ -29,51 +44,76 @@ function tryExtractGamePage(
   return { appId, container };
 }
 
-export async function detectGamePage(doc: Document, selectors: LibrarySelectors): Promise<GamePageInfo | null> {
-  let result: GamePageInfo | null = null;
+export async function detectGamePage(
+  doc: Document,
+  selectors: LibrarySelectors,
+  mode: UIMode
+): Promise<GamePageInfo | null> {
+  if (mode === 'desktop') {
+    return detectDesktop(doc, selectors);
+  }
+  return detectBigPicture(doc, selectors);
+}
 
-  // Strategy 1: Extract appId from header image URL (/assets/{appId}/...)
-  // Most reliable for Big Picture mode where pathname is stale and GetActiveAppID errors.
-  // Fragile: breaks with custom logos, so other strategies serve as fallbacks.
-  result =
-    tryExtractGamePage(doc, selectors.headerImageSelector, selectors.containerSelector, selectors.appIdPattern) ||
-    tryExtractGamePage(doc, selectors.fallbackImageSelector, selectors.containerSelector, selectors.appIdPattern);
-
-  // Strategy 2: Check Millennium's Location (URL path)
-  // Reliable in desktop mode and works even with custom art.
-  // Stale in Big Picture mode — pathname does not update when navigating between games.
-  if (!result && window.MainWindowBrowserManager?.m_lastLocation?.pathname) {
+// Desktop: pathname is reliable and updates on navigation.
+// GetActiveAppID is a fallback (works in desktop, errors in Big Picture).
+async function detectDesktop(doc: Document, selectors: LibrarySelectors): Promise<GamePageInfo | null> {
+  // Strategy 1: pathname from MainWindowBrowserManager
+  if (window.MainWindowBrowserManager?.m_lastLocation?.pathname) {
     const match = window.MainWindowBrowserManager.m_lastLocation.pathname.match(/\/app\/(\d+)/);
     if (match) {
       const appId = parseInt(match[1], 10);
       const container = doc.querySelector(selectors.containerSelector) as HTMLElement | null;
       if (container) {
-        result = { appId, container };
+        log('Detected via pathname:', appId);
+        return { appId, container, gameName: extractGameName(appId) };
       }
     }
   }
 
-  // Strategy 3: Check Steam Client API
-  // Errors in Big Picture mode. Only useful as a last resort.
-  if (!result && window.SteamClient?.Apps?.GetActiveAppID) {
+  // Strategy 2: Steam Client API
+  if (window.SteamClient?.Apps?.GetActiveAppID) {
     try {
       // @ts-ignore - GetActiveAppID might return -1 or 0 if invalid
       const appId = await window.SteamClient.Apps.GetActiveAppID();
       if (appId > 0) {
         const container = doc.querySelector(selectors.containerSelector) as HTMLElement | null;
         if (container) {
-          result = { appId, container };
+          log('Detected via GetActiveAppID:', appId);
+          return { appId, container, gameName: extractGameName(appId) };
         }
       }
-    } catch (e) {
-      console.warn('SteamClient.Apps.GetActiveAppID failed:', e);
+    } catch {
+      // GetActiveAppID not available
     }
   }
 
-  // Enrich with game name from Steam's app store for non-Steam game fallback
-  if (result) {
-    result.gameName = extractGameName(result.appId);
+  return null;
+}
+
+// Big Picture: pathname is stale and GetActiveAppID errors.
+// Route patch (set up in observer.ts) provides appid from React component tree.
+// Image-based detection is a fallback. Custom logos can cause wrong appId.
+function detectBigPicture(doc: Document, selectors: LibrarySelectors): GamePageInfo | null {
+  // Strategy 1: appId from route patch (set by routerHook.addPatch callback)
+  if (routePatchAppId) {
+    const container = doc.querySelector(selectors.containerSelector) as HTMLElement | null;
+    if (container) {
+      log('Detected via route patch:', routePatchAppId);
+      return { appId: routePatchAppId, container, gameName: routePatchGameName || extractGameName(routePatchAppId) };
+    }
   }
 
-  return result;
+  // Strategy 2: extract appId from header image URL (/assets/{appId}/...)
+  // Fragile: custom logos can cause wrong appId.
+  const result =
+    tryExtractGamePage(doc, selectors.headerImageSelector, selectors.containerSelector, selectors.appIdPattern) ||
+    tryExtractGamePage(doc, selectors.fallbackImageSelector, selectors.containerSelector, selectors.appIdPattern);
+  if (result) {
+    log('Detected via image:', result.appId);
+    result.gameName = extractGameName(result.appId);
+    return result;
+  }
+
+  return null;
 }

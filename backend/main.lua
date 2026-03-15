@@ -116,7 +116,8 @@ end
 -- Main function called by frontend and webkit
 function GetHltbData(app_id, fallback_name, force_refresh)
     local success, result = pcall(function()
-        logger:info("GetHltbData called for app_id: " .. tostring(app_id))
+        local name_hint = (fallback_name and fallback_name ~= "") and fallback_name or nil
+        logger:info("GetHltbData called for app_id: " .. tostring(app_id) .. (name_hint and (" (" .. name_hint .. ")") or ""))
 
         -- Check result cache (skip if force refresh)
         if not force_refresh then

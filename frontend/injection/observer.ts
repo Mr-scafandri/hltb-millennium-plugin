@@ -1,8 +1,8 @@
-import type { HltbGameResult, LibrarySelectors } from '../types';
+import type { HltbGameResult, LibrarySelectors, UIMode } from '../types';
 import { log } from '../services/logger';
 import { fetchHltbData } from '../services/hltbApi';
 import { getSettings } from '../services/settings';
-import { detectGamePage } from './detector';
+import { detectGamePage, setRoutePatchData, clearRoutePatchData } from './detector';
 import {
   createDisplay,
   getExistingDisplay,
@@ -15,12 +15,14 @@ let currentData: HltbGameResult | null = null;
 let processingAppId: number | null = null;
 let currentDoc: Document | null = null;
 let observer: MutationObserver | null = null;
+let routePatchCleanup: (() => void) | null = null;
 
 export function resetState(): void {
   currentAppId = null;
   currentData = null;
   processingAppId = null;
   currentDoc = null;
+  clearRoutePatchData();
 }
 
 export function refreshDisplay(): void {
@@ -45,16 +47,15 @@ export function refreshDisplay(): void {
   existing.replaceWith(createDisplay(currentDoc, settings, currentData));
 }
 
-async function handleGamePage(doc: Document, selectors: LibrarySelectors): Promise<void> {
+async function handleGamePage(doc: Document, selectors: LibrarySelectors, mode: UIMode): Promise<void> {
   const settings = getSettings();
   if (!settings.showInLibrary) {
     removeExistingDisplay(doc);
     return;
   }
 
-  const gamePage = await detectGamePage(doc, selectors);
+  const gamePage = await detectGamePage(doc, selectors, mode);
   if (!gamePage) {
-    // Silent return - game page not detected (common during DOM transitions)
     return;
   }
 
@@ -127,17 +128,58 @@ async function handleGamePage(doc: Document, selectors: LibrarySelectors): Promi
   }
 }
 
-export function setupObserver(doc: Document, selectors: LibrarySelectors): void {
-  // Clean up existing observer
+// In Big Picture, set up a route patch on /library/app/:appid to get the appId
+// from React's component tree. The patch intercepts renderFunc to extract
+// overview.appid, which is stored for the MutationObserver to pick up.
+function setupRoutePatch(): void {
+  const routerHook = (window as any).__ROUTER_HOOK_INSTANCE;
+  if (!routerHook) {
+    log('Router hook not available, Big Picture will use image fallback only');
+    return;
+  }
+
+  const patchFn = (props: any) => {
+    const renderFunc = props.children?.props?.renderFunc;
+    if (renderFunc) {
+      const orig = renderFunc;
+      props.children.props.renderFunc = (...args: any[]) => {
+        const ret = orig(...args);
+        const overview = ret?.props?.children?.props?.overview;
+        if (overview?.appid) {
+          setRoutePatchData(overview.appid, overview.display_name);
+        }
+        return ret;
+      };
+    }
+    return props;
+  };
+
+  const EUIMODE_GAMEPAD = 4;
+  routerHook.addPatch('/library/app/:appid', patchFn, EUIMODE_GAMEPAD);
+  routePatchCleanup = () => routerHook.removePatch('/library/app/:appid', patchFn, EUIMODE_GAMEPAD);
+  log('Route patch set up for Big Picture mode');
+}
+
+export function setupObserver(doc: Document, selectors: LibrarySelectors, mode: UIMode): void {
+  // Clean up existing observer and route patch
   if (observer) {
     observer.disconnect();
     observer = null;
   }
+  if (routePatchCleanup) {
+    routePatchCleanup();
+    routePatchCleanup = null;
+  }
 
+  log('Setting up for', mode, 'mode');
   injectStyles(doc);
 
+  if (mode === 'bigpicture') {
+    setupRoutePatch();
+  }
+
   observer = new MutationObserver(() => {
-    handleGamePage(doc, selectors);
+    handleGamePage(doc, selectors, mode);
   });
 
   observer.observe(doc.body, {
@@ -148,12 +190,16 @@ export function setupObserver(doc: Document, selectors: LibrarySelectors): void 
   log('MutationObserver set up');
 
   // Initial check for already-rendered game page
-  handleGamePage(doc, selectors);
+  handleGamePage(doc, selectors, mode);
 }
 
 export function disconnectObserver(): void {
   if (observer) {
     observer.disconnect();
     observer = null;
+  }
+  if (routePatchCleanup) {
+    routePatchCleanup();
+    routePatchCleanup = null;
   }
 }

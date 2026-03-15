@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { definePlugin, Millennium, IconsModule, Field, DialogButton, callable } from '@steambrew/client';
 import { log } from './services/logger';
-import { LIBRARY_SELECTORS } from './types';
+import { LIBRARY_SELECTORS, UIMode } from './types';
 import { setupObserver, resetState, disconnectObserver, refreshDisplay } from './injection/observer';
 import { exposeDebugTools, removeDebugTools } from './debug/tools';
 import { removeStyles } from './display/styles';
@@ -278,7 +278,8 @@ export default definePlugin(() => {
     }
 
     currentDocument = doc;
-    setupObserver(doc, LIBRARY_SELECTORS);
+    const mode: UIMode = context.m_strName.includes('BPM') ? 'bigpicture' : 'desktop';
+    setupObserver(doc, LIBRARY_SELECTORS, mode);
     exposeDebugTools(doc);
 
     // Initialize ID cache in background (non-blocking)
