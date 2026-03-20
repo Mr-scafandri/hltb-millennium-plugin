@@ -1,5 +1,6 @@
 import { callable } from '@steambrew/webkit';
 
+// Also defined in frontend/types.ts (separate build target, can't share code)
 export interface HltbGameResult {
   searched_name: string;
   game_id?: number;
@@ -9,6 +10,7 @@ export interface HltbGameResult {
   comp_100?: number | null;
 }
 
+// Also defined in frontend/services/hltbApi.ts (separate build target, can't share code)
 interface BackendResponse {
   success: boolean;
   error?: string;
@@ -19,22 +21,35 @@ interface BackendResponse {
 
 const GetHltbData = callable<[{ app_id: number; fallback_name?: string; force_refresh?: boolean }], string>('GetHltbData');
 
-export async function fetchHltbData(appId: number, fallbackName?: string): Promise<HltbGameResult | null> {
+export interface FetchResult {
+  data: HltbGameResult | null;
+  refreshPromise: Promise<HltbGameResult | null> | null;
+}
+
+export async function fetchHltbData(appId: number, fallbackName?: string): Promise<FetchResult> {
   try {
     const resultJson = await GetHltbData({ app_id: appId, fallback_name: fallbackName });
-    if (!resultJson) return null;
+    if (!resultJson) return { data: null, refreshPromise: null };
 
     const result: BackendResponse = JSON.parse(resultJson);
-    if (!result.success || !result.data) return null;
+    if (!result.success || !result.data) return { data: null, refreshPromise: null };
 
-    // Background refresh for stale data (same behavior as library)
-    if (result.fromCache && (result.isStale || (result.data && !result.data.game_id))) {
-      GetHltbData({ app_id: appId, fallback_name: fallbackName, force_refresh: true }).catch(() => {});
+    // Background refresh for stale data or misses (same pattern as library)
+    const isMiss = result.data && !result.data.game_id;
+    if (result.fromCache && (result.isStale || isMiss)) {
+      const refreshPromise = GetHltbData({ app_id: appId, fallback_name: fallbackName, force_refresh: true })
+        .then((json) => {
+          if (!json) return null;
+          const r: BackendResponse = JSON.parse(json);
+          return (r.success && r.data) ? r.data : null;
+        })
+        .catch(() => null);
+      return { data: result.data, refreshPromise };
     }
 
-    return result.data;
+    return { data: result.data, refreshPromise: null };
   } catch (e) {
     console.error('[HLTB] Backend call failed:', e);
-    return null;
+    return { data: null, refreshPromise: null };
   }
 }

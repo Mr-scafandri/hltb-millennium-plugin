@@ -23,6 +23,9 @@ const STORE_POSITION_OPTIONS = [
   { value: 'bottom', label: 'Sidebar end' },
 ];
 
+const sectionHeaderStyle = { fontSize: '16px', fontWeight: 'bold' as const, textTransform: 'uppercase' as const, letterSpacing: '1px' };
+const sectionDescStyle = { fontSize: '11px', color: '#8f98a0', padding: '4px 0 8px', borderBottom: '1px solid rgba(255,255,255,0.1)' };
+
 const SettingsContent = () => {
   const [message, setMessage] = useState('');
   const [showInLibrary, setShowInLibrary] = useState(true);
@@ -48,63 +51,63 @@ const SettingsContent = () => {
     setShowStoreViewDetails(settings.showStoreViewDetails);
   }, []);
 
-  const onShowInLibraryChange = (checked: boolean) => {
+  const onShowInLibraryChange = async (checked: boolean) => {
     setShowInLibrary(checked);
-    saveSettings({ ...getSettings(), showInLibrary: checked });
+    await saveSettings({ ...getSettings(), showInLibrary: checked });
     refreshDisplay();
   };
 
-  const onShowInStoreChange = (checked: boolean) => {
+  const onShowInStoreChange = async (checked: boolean) => {
     setShowInStore(checked);
-    saveSettings({ ...getSettings(), showInStore: checked });
+    await saveSettings({ ...getSettings(), showInStore: checked });
   };
 
-  const onStorePositionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const onStorePositionChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const value = e.target.value;
     setStorePosition(value);
-    saveSettings({ ...getSettings(), storePosition: value as StorePosition });
+    await saveSettings({ ...getSettings(), storePosition: value as StorePosition });
   };
 
-  const onShowStoreViewDetailsChange = (checked: boolean) => {
+  const onShowStoreViewDetailsChange = async (checked: boolean) => {
     setShowStoreViewDetails(checked);
-    saveSettings({ ...getSettings(), showStoreViewDetails: checked });
+    await saveSettings({ ...getSettings(), showStoreViewDetails: checked });
   };
 
-  const onHorizontalOffsetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onHorizontalOffsetChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setHorizontalOffset(value);
     const numValue = parseInt(value, 10);
     if (!isNaN(numValue)) {
-      saveSettings({ ...getSettings(), horizontalOffset: numValue });
+      await saveSettings({ ...getSettings(), horizontalOffset: numValue });
       refreshDisplay();
     }
   };
 
-  const onVerticalOffsetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onVerticalOffsetChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setVerticalOffset(value);
     const numValue = parseInt(value, 10);
     if (!isNaN(numValue)) {
-      saveSettings({ ...getSettings(), verticalOffset: numValue });
+      await saveSettings({ ...getSettings(), verticalOffset: numValue });
       refreshDisplay();
     }
   };
 
-  const onShowViewDetailsChange = (checked: boolean) => {
+  const onShowViewDetailsChange = async (checked: boolean) => {
     setShowViewDetails(checked);
-    saveSettings({ ...getSettings(), showViewDetails: checked });
+    await saveSettings({ ...getSettings(), showViewDetails: checked });
     refreshDisplay();
   };
 
-  const onAlignRightChange = (checked: boolean) => {
+  const onAlignRightChange = async (checked: boolean) => {
     setAlignRight(checked);
-    saveSettings({ ...getSettings(), alignRight: checked });
+    await saveSettings({ ...getSettings(), alignRight: checked });
     refreshDisplay();
   };
 
-  const onAlignBottomChange = (checked: boolean) => {
+  const onAlignBottomChange = async (checked: boolean) => {
     setAlignBottom(checked);
-    saveSettings({ ...getSettings(), alignBottom: checked });
+    await saveSettings({ ...getSettings(), alignBottom: checked });
     refreshDisplay();
   };
 
@@ -156,8 +159,8 @@ const SettingsContent = () => {
   return (
     <>
       {/* Library View */}
-      <div style={{ fontSize: '16px', fontWeight: 'bold', padding: '0 0 0', textTransform: 'uppercase', letterSpacing: '1px' }}>Library View</div>
-      <div style={{ fontSize: '11px', color: '#8f98a0', padding: '4px 0 8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Changes apply immediately</div>
+      <div style={sectionHeaderStyle}>Library View</div>
+      <div style={sectionDescStyle}>Changes apply immediately</div>
       <Field label="Show in Library" bottomSeparator="standard">
         <input
           type="checkbox"
@@ -208,8 +211,8 @@ const SettingsContent = () => {
       </Field>
 
       {/* Store View */}
-      <div style={{ fontSize: '16px', fontWeight: 'bold', padding: '28px 0 0', textTransform: 'uppercase', letterSpacing: '1px' }}>Store View</div>
-      <div style={{ fontSize: '11px', color: '#8f98a0', padding: '4px 0 8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Changes apply on next page load</div>
+      <div style={{ ...sectionHeaderStyle, paddingTop: '28px' }}>Store View</div>
+      <div style={sectionDescStyle}>Changes apply on next page load</div>
       <Field label="Show in Store" bottomSeparator="standard">
         <input
           type="checkbox"
@@ -239,7 +242,7 @@ const SettingsContent = () => {
       </Field>
 
       {/* Cache */}
-      <div style={{ fontSize: '16px', fontWeight: 'bold', padding: '28px 0 8px', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '0' }}>Cache</div>
+      <div style={{ ...sectionHeaderStyle, padding: '28px 0 8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>Cache</div>
       <Field label="Cache Statistics" bottomSeparator="standard">
         <DialogButton onClick={onCacheStats} style={{ padding: '4px 12px' }}>View Stats</DialogButton>
       </Field>

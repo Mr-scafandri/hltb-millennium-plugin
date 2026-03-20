@@ -58,17 +58,25 @@ end
 
 local function prune_result_cache()
     local now = os.time()
-    local entries = {}
 
+    -- Remove expired entries
     for app_id, entry in pairs(result_cache) do
-        if now - entry.timestamp < MAX_CACHE_AGE then
-            table.insert(entries, { app_id = app_id, entry = entry })
+        if now - entry.timestamp >= MAX_CACHE_AGE then
+            result_cache[app_id] = nil
         end
     end
 
-    if #entries > MAX_CACHE_ENTRIES then
+    -- If still over limit, keep only the newest entries
+    local count = 0
+    for _ in pairs(result_cache) do count = count + 1 end
+
+    if count > MAX_CACHE_ENTRIES then
+        local entries = {}
+        for app_id, entry in pairs(result_cache) do
+            table.insert(entries, { app_id = app_id, entry = entry })
+        end
         table.sort(entries, function(a, b)
-            return a.entry.timestamp > b.entry.timestamp -- newest first
+            return a.entry.timestamp > b.entry.timestamp
         end)
 
         result_cache = {}
@@ -76,11 +84,6 @@ local function prune_result_cache()
             result_cache[entries[i].app_id] = entries[i].entry
         end
         logger:info("Pruned cache to " .. MAX_CACHE_ENTRIES .. " entries")
-    else
-        result_cache = {}
-        for _, e in ipairs(entries) do
-            result_cache[e.app_id] = e.entry
-        end
     end
 end
 
@@ -105,6 +108,9 @@ function M.set(app_id, data)
     result_cache[tostring(app_id)] = {
         data = data,
         timestamp = os.time(),
+        -- True when fetch_fresh returned nil (network/lookup error).
+        -- Partial results (HLTB returned no match) have data.searched_name
+        -- but no data.game_id; the frontend handles these via the isMiss check.
         notFound = data == nil,
     }
 
@@ -184,7 +190,7 @@ function M.id_cache_stats()
 
     return {
         count = count,
-        steamUserId = id_cache.metadata.steamUserId or nil,
+        steamUserId = id_cache.metadata.steamUserId,
         ageSeconds = age_seconds,
     }
 end
@@ -214,6 +220,8 @@ function M.load()
     if cached then
         result_cache = {}
         for k, v in pairs(cached) do
+            -- Only load entries with numeric string keys (app IDs) to skip
+            -- any JSON metadata or deserialization artifacts
             if tonumber(k) and type(v) == "table" and v.timestamp then
                 result_cache[k] = v
             end

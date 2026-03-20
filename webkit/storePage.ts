@@ -61,25 +61,22 @@ function createDataDisplay(data: HltbGameResult, showViewDetails: boolean): HTML
 
 const SIDEBAR_SELECTOR = 'div.rightcol.game_meta_data';
 
-// Position targets in the store sidebar, ordered for fallback
+// Position targets in the store sidebar (insert after the matched element)
 const POSITION_SELECTORS: Record<string, string> = {
-  top: SIDEBAR_SELECTOR,
   achievements: '#achievement_block',
   details: '#appDetailsUnderlinedLinks',
-  bottom: SIDEBAR_SELECTOR,
 };
 
 function insertAtPosition(element: HTMLElement, position: string): boolean {
+  const sidebar = document.querySelector(SIDEBAR_SELECTOR);
+  if (!sidebar) return false;
+
   if (position === 'top') {
-    const sidebar = document.querySelector(SIDEBAR_SELECTOR);
-    if (!sidebar) return false;
     sidebar.insertBefore(element, sidebar.firstChild);
     return true;
   }
 
   if (position === 'bottom') {
-    const sidebar = document.querySelector(SIDEBAR_SELECTOR);
-    if (!sidebar) return false;
     sidebar.appendChild(element);
     return true;
   }
@@ -90,7 +87,6 @@ function insertAtPosition(element: HTMLElement, position: string): boolean {
   const target = document.querySelector(selector);
   if (!target?.parentElement) return false;
 
-  // Insert after the target element
   target.parentElement.insertBefore(element, target.nextSibling);
   return true;
 }
@@ -141,14 +137,25 @@ export async function initStorePage(appId: number): Promise<void> {
   const fallbackName = nameEl?.textContent?.trim();
 
   // Fetch data
-  const data = await fetchHltbData(appId, fallbackName);
+  const result = await fetchHltbData(appId, fallbackName);
 
   // Replace loading with result
   const existing = document.getElementById(CONTAINER_ID);
   if (!existing) return;
 
-  if (data) {
-    existing.replaceWith(createDataDisplay(data, showViewDetails));
+  if (result.data) {
+    existing.replaceWith(createDataDisplay(result.data, showViewDetails));
+
+    // Update display when background refresh completes
+    if (result.refreshPromise) {
+      result.refreshPromise.then((newData) => {
+        if (!newData) return;
+        const current = document.getElementById(CONTAINER_ID);
+        if (current) {
+          current.replaceWith(createDataDisplay(newData, showViewDetails));
+        }
+      });
+    }
   } else {
     existing.remove();
   }

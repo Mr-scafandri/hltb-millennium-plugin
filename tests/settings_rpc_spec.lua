@@ -33,6 +33,23 @@ package.loaded["hltb_endpoint_discovery"] = {
     TIMEOUT = 10,
     get_build_id = function() return "test" end,
 }
+package.loaded["hltb"] = {
+    search_best_match = function() return nil end,
+    fetch_game_by_id = function() return nil end,
+    fetch_steam_import = function() return nil end,
+}
+package.loaded["steam"] = {
+    get_game_name = function() return nil end,
+}
+package.loaded["steamhunters"] = {
+    get_game_name = function() return nil end,
+}
+package.loaded["hltb_utils"] = {
+    sanitize_game_name = function(n) return n end,
+    calculate_similarity = function() return 0 end,
+    seconds_to_hours = function(s) return s and s / 3600 or nil end,
+}
+package.loaded["game_ids"] = {}
 
 -- Mock settings module (replaced per-test)
 local mock_settings = {

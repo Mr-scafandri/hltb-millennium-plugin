@@ -67,9 +67,13 @@ export function exposeDebugTools(doc: Document): void {
         log(`  [${i}] ${child.tagName}.${child.className.split(' ')[0] || '(no class)'}`);
       });
     },
-    clearCache: () => {
-      ClearCacheRpc().catch(() => {});
-      log('Cache cleared. Refresh or navigate to a game to fetch fresh data.');
+    clearCache: async () => {
+      try {
+        await ClearCacheRpc();
+        log('Cache cleared. Refresh or navigate to a game to fetch fresh data.');
+      } catch (e) {
+        log('Failed to clear cache:', e);
+      }
     },
     cacheStats: async () => {
       try {

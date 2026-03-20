@@ -28,21 +28,25 @@ export function resetState(): void {
 }
 
 export function refreshDisplay(): void {
-  if (!currentDoc || !currentAppId || !currentData || !currentMode) return;
+  if (!currentDoc || !currentMode) return;
 
+  // No data yet - nothing to refresh
+  if (!currentAppId || !currentData) return;
+
+  const settings = getSettings();
   const existing = getExistingDisplay(currentDoc);
 
-  // If display doesn't exist but should, re-trigger detection
-  if (!existing) {
-    currentAppId = null;
-    currentData = null;
-    processingAppId = null;
-    handleGamePage(currentDoc, currentMode);
+  if (existing) {
+    existing.replaceWith(createDisplay(currentDoc, settings, currentData));
     return;
   }
 
-  const settings = getSettings();
-  existing.replaceWith(createDisplay(currentDoc, settings, currentData));
+  // Display was removed but we still have data - re-detect and inject
+  const gamePage = detectGamePage(currentDoc, currentMode);
+  if (gamePage && gamePage.appId === currentAppId) {
+    gamePage.container.style.position = 'relative';
+    gamePage.container.appendChild(createDisplay(currentDoc, settings, currentData));
+  }
 }
 
 async function handleGamePage(doc: Document, mode: UIMode): Promise<void> {
@@ -54,6 +58,10 @@ async function handleGamePage(doc: Document, mode: UIMode): Promise<void> {
 
   const gamePage = detectGamePage(doc, mode);
   if (!gamePage) {
+    // Clear stale route patch data when no game page is detected
+    if (mode === 'bigpicture') {
+      clearRoutePatchData();
+    }
     return;
   }
 
