@@ -39,6 +39,9 @@ jobs:
             exit 0
           fi
 
+          echo "::add-mask::$TOKEN"
+          echo "::add-mask::$HP_KEY"
+          echo "::add-mask::$HP_VAL"
           echo "init_ok=true" >> "$GITHUB_OUTPUT"
           echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
           echo "hp_key=$HP_KEY" >> "$GITHUB_OUTPUT"
