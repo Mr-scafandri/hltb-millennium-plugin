@@ -41,7 +41,7 @@ When you view a game page:
 
 1. The plugin detects the Steam App ID from the page
 2. If a cached HLTB ID exists (from the Steam import), it fetches data directly by ID
-3. Otherwise, it falls back to name-based search: queries Steam for the game name, applies fixes, then searches HLTB
+3. Otherwise, it falls back to searching HLTB by name
 4. Results are cached to disk and displayed
 
 The same caching and lookup logic is shared between the library and store views.
@@ -69,9 +69,9 @@ Cache:
 
 ## Known Limitations
 
-The plugin determines the HLTB game ID from two sources: the Steam import API (if your profile is public) and the [game IDs](./backend/game_ids.lua) file, which maps Steam AppIDs directly to HLTB game IDs. If neither source has an entry, the plugin falls back to a name-based search, which usually works but can fail when Steam and HLTB use different names. Feel free to submit a PR for any additional game ID mappings.
+HLTB constantly changes their API. This plugin will periodically break for a week or more at a time. This is a known issue across all HLTB data consumers. Set your expectations accordingly or submit a PR.
 
-Also note that DLC and non-game content will not have HLTB data.
+The plugin determines the HLTB game ID from two sources: the Steam import API (if your profile is public) and the [game IDs](./backend/game_ids.lua) file, which maps Steam AppIDs directly to HLTB game IDs. If neither source has an entry, the plugin falls back to a name-based search which sometimes fails. Feel free to submit a PR for any additional game ID mappings.
 
 ## How to add a game ID mapping
 
@@ -87,12 +87,8 @@ Add a line to the game_ids.lua file like this:
 
 The format is `[STEAM_APPID] = HLTB_ID, -- HLTB Game Name`. The comment with the game name is required so we can recover if HLTB ever changes IDs.
 
-You should add this correction to your local file and verify that it works before submitting a pull request:
+You should add this correction to your local file and verify that it works before submitting a PR:
 `Steam/plugins/hltb-for-millennium/backend/game_ids.lua`
-
-## How to submit a pull request (PR) from the Github website
-
-If you are already familiar with PRs that is great, just do your thing. For new users, you can do this process entirely from the Github website, you just need a free Github account.
 
 When you add the game ID mapping, it needs to be:
 * in sorted order by Steam App ID
@@ -100,32 +96,26 @@ When you add the game ID mapping, it needs to be:
 * correct syntax: `[APPID] = HLTB_ID, -- Game Name`
 * include a comment with the HLTB game name
 
-An automated check will make sure that all of these are true before your change can be accepted.
+When you submit your PR, an automated test will check all of these features before it can be accepted.
 
-You **must** test it on your local copy before submitting it. I can't test it for you because I probably don't own the game. Other users can't test it for you because they are in different regions and might have other issues going on. It is very important that you test it first - see instructions in the last section.
+You **must** test it on your local copy before submitting it. I can't test it for you because I probably don't own the game. Other users can't test it for you because they are in different regions and might have other issues going on.
 
-PR instructions:
-1. Fork this repo (click the "Fork" button at the top right)
-2. Click "Create Fork" to make your own version of the repo - this is where you'll make your edit and then request that the main repo pulls from it
-3. In your fork, navigate to the file you want to edit: `backend/game_ids.lua`
-4. Click the pencil icon to edit the file
-5. Make your changes, update the commit message to something descriptive, and click "Commit changes"
-6. Go back to the original repo and click "Pull requests" → "New pull request"
-7. Click "compare across forks" and select your fork as the head repository
-8. Click "Create pull request", add a description, and submit
-9. On the pull request page make sure that all tests are passing (green) - if a test fails then you need to fix it
+## Contributing
 
-Official Github instructions:
-* [Forking](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo)
-* [Pull requests](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request).
+PRs are encouraged. Feature requests are not accepted - many hands make light work.
 
-## Development
+PRs must meet these requirements:
+- Compiles and passes all existing tests
+- Tested locally before submission
+- Matches the existing code style and architecture
+- No regressions in Desktop or Big Picture mode
+- Includes a clear description of what changed and why
 
-Pull requests are welcome and appreciated! See the [development docs](./docs/README.md).
+Any PRs that don't meet these requirements will be closed.
 
-For game ID additions please submit a pull request, direct submissions are not accepted. Automated tests will run and check for common problems.
+For significant changes, contributions from AI agents are preferred due to higher quality observed in PRs to date. See closed PRs for examples of lower quality contributions. Use the AGENTS.md file and review the work closely - you are still responsible for it.
 
-Before submitting a game ID mapping, please test it locally by editing: `Steam/plugins/hltb-for-millennium/backend/game_ids.lua`. This is also the fastest way to add a mapping - the full release process for this repository and the Millennium plugin database can take 1-2 weeks or more.
+See the [development docs](./docs/README.md) for setup instructions.
 
 ## Credits
 

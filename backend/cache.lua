@@ -104,8 +104,24 @@ function M.get(app_id)
     return entry, is_stale
 end
 
+local function has_completion_times(data)
+    if not data then return false end
+    return (data.comp_main or 0) > 0
+        or (data.comp_plus or 0) > 0
+        or (data.comp_100 or 0) > 0
+end
+
 function M.set(app_id, data)
-    result_cache[tostring(app_id)] = {
+    local key = tostring(app_id)
+
+    -- Don't overwrite valid cached times with empty data
+    local existing = result_cache[key]
+    if existing and has_completion_times(existing.data) and not has_completion_times(data) then
+        logger:info("Keeping cached data for app_id " .. key .. " (new data has no completion times)")
+        return
+    end
+
+    result_cache[key] = {
         data = data,
         timestamp = os.time(),
         -- True when fetch_fresh returned nil (network/lookup error).
