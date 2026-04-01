@@ -27,8 +27,7 @@ jobs:
 
           if [ "$HTTP_CODE" != "200" ]; then
             echo "::error::Init endpoint returned HTTP $HTTP_CODE"
-            echo "init_ok=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            exit 1
           fi
 
           TOKEN=$(echo "$BODY" | jq -r '.token // empty')
@@ -41,19 +40,15 @@ jobs:
 
           if [ -z "$TOKEN" ] || [ -z "$HP_KEY" ] || [ -z "$HP_VAL" ]; then
             echo "::error::Init response missing expected fields. Body: $BODY"
-            echo "init_ok=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            exit 1
           fi
 
           echo "Init check passed"
-          echo "init_ok=true" >> "$GITHUB_OUTPUT"
           echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
           echo "hp_key=$HP_KEY" >> "$GITHUB_OUTPUT"
           echo "hp_val=$HP_VAL" >> "$GITHUB_OUTPUT"
 
       - name: Check search endpoint
-        id: search
-        if: steps.init.outputs.init_ok == 'true'
         run: |
           TOKEN="${{ steps.init.outputs.token }}"
           HP_KEY="${{ steps.init.outputs.hp_key }}"
@@ -107,8 +102,7 @@ jobs:
 
           if [ "$HTTP_CODE" != "200" ]; then
             echo "::error::Search endpoint returned HTTP $HTTP_CODE"
-            echo "search_ok=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            exit 1
           fi
 
           RESULT_COUNT=$(echo "$BODY" | jq -r '.data | length')
@@ -116,50 +110,7 @@ jobs:
 
           if [ "$RESULT_COUNT" = "0" ] || [ "$RESULT_COUNT" = "null" ]; then
             echo "::error::Search returned no results for 'Dark Souls'"
-            echo "search_ok=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            exit 1
           fi
 
           echo "Search check passed"
-          echo "search_ok=true" >> "$GITHUB_OUTPUT"
-
-      - name: Create issue if checks failed
-        if: steps.init.outputs.init_ok != 'true' || steps.search.outputs.search_ok != 'true'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const title = 'HLTB API check failed';
-            const { data: issues } = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              labels: 'hltb-api-monitor',
-              per_page: 1
-            });
-
-            if (issues.length > 0) {
-              console.log('Open issue already exists: #' + issues[0].number);
-              return;
-            }
-
-            const initOk = '${{ steps.init.outputs.init_ok }}' === 'true';
-            const searchOk = '${{ steps.search.outputs.search_ok }}' === 'true';
-            const initStatus = '${{ steps.init.outputs.status }}';
-            const searchStatus = '${{ steps.search.outputs.status }}';
-
-            let body = 'The daily HLTB API monitor detected a problem.\n\n';
-            if (!initOk) {
-              body += `- Init endpoint (\`/api/find/init\`): HTTP ${initStatus}\n`;
-            }
-            if (!searchOk) {
-              body += `- Search endpoint (\`/api/find\`): HTTP ${searchStatus}\n`;
-            }
-            body += `\nRun: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title,
-              body,
-              labels: ['hltb-api-monitor']
-            });
