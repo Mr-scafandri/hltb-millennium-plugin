@@ -1,8 +1,5 @@
 # HLTB for Steam
 
-> [!IMPORTANT]
-> HLTB does not have an official public API. This plugin relies on undocumented endpoints that can change without notice. When that happens, the plugin will stop working until the code is updated. This may take a week or more unless you submit a PR.
-
 A [Millennium](https://steambrew.app/) plugin that displays [How Long To Beat](https://howlongtobeat.com/) completion times on game pages in the Steam library and store.
 
 ![Desktop Mode](example_desktop.png)
@@ -10,6 +7,9 @@ A [Millennium](https://steambrew.app/) plugin that displays [How Long To Beat](h
 ![Big Picture Mode](example_bigPictureMode.png)
 
 ## Features
+
+> [!IMPORTANT]
+> HLTB does not have an official public API. This plugin relies on undocumented endpoints that can change without notice. When that happens, the plugin will stop working until the code is updated. This may take a week or more unless you submit a PR.
 
 - Shows HLTB completion times on library game pages and store pages:
   - Main Story
@@ -105,27 +105,26 @@ You **must** test it on your local copy before submitting it. I can't test it fo
 
 ## Contributing
 
-PRs are encouraged. Feature requests are not accepted - many hands make light work.
+PRs are encouraged! See the [development docs](./docs/README.md) for setup instructions.
 
-PRs must meet these requirements:
+Contributions must meet these requirements:
 - Compiles and passes all existing tests
 - Tested locally before submission
 - Matches the existing code style and architecture
 - No regressions in Desktop or Big Picture mode
 - Includes a clear description of what changed and why
+- Address any concerns raised by the package maintainer
 
-Any PRs that don't meet these requirements will be closed. See closed PRs for examples of this.
+Any PRs that don't meet these requirements will be closed.
 
-For significant changes, contributions from AI agents are encouraged to help maintain quality and style guidelines. Use the AGENTS.md file and the docs heavily. Review the work closely and test it before submitting a PR - you are still responsible for it.
-
-See the [development docs](./docs/README.md) for setup instructions.
+Contributions from AI agents are encouraged to help maintain quality and style guidelines. Use the AGENTS.md file and docs. You are still responsible for your work - review the code closely and test thoroughly.
 
 ## Credits
 
-- [HLTB for Deck](https://github.com/morwy/hltb-for-deck/) for inspiration
 - [How Long To Beat](https://howlongtobeat.com/) for the game completion data
+- [HLTB for Deck](https://github.com/morwy/hltb-for-deck/) for inspiration
+- [HowLongToBeat-PythonAPI](https://github.com/ScrappyCocco/HowLongToBeat-PythonAPI) for initial HLTB reference implementation
 - [Millennium](https://steambrew.app/) for the plugin framework
-- [HowLongToBeat-PythonAPI](https://github.com/ScrappyCocco/HowLongToBeat-PythonAPI) for HLTB API reference implementation
 
 ## Disclaimer
 
