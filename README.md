@@ -1,5 +1,8 @@
 # HLTB for Steam
 
+> [!IMPORTANT]
+> HLTB does not have an official public API. This plugin relies on undocumented endpoints that can change without notice. When that happens, the plugin will stop working until the code is updated. This may take a week or more unless you submit a PR.
+
 A [Millennium](https://steambrew.app/) plugin that displays [How Long To Beat](https://howlongtobeat.com/) completion times on game pages in the Steam library and store.
 
 ![Desktop Mode](example_desktop.png)
@@ -111,9 +114,9 @@ PRs must meet these requirements:
 - No regressions in Desktop or Big Picture mode
 - Includes a clear description of what changed and why
 
-Any PRs that don't meet these requirements will be closed.
+Any PRs that don't meet these requirements will be closed. See closed PRs for examples of this.
 
-For significant changes, contributions from AI agents are preferred due to higher quality observed in PRs to date. See closed PRs for examples of lower quality contributions. Use the AGENTS.md file and review the work closely - you are still responsible for it.
+For significant changes, contributions from AI agents are encouraged to help maintain quality and style guidelines. Use the AGENTS.md file and the docs heavily. Review the work closely and test it before submitting a PR - you are still responsible for it.
 
 See the [development docs](./docs/README.md) for setup instructions.
 
